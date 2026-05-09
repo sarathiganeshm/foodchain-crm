@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Component, type ReactNode } from 'react';
-import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 
@@ -102,14 +102,21 @@ function generateTempHistory(base: number): { t: string; v: number }[] {
 // ─── Animated Count-Up Number ─────────────────────────────────────────────────
 
 function CountUp({ target, decimals = 0 }: { target: number; decimals?: number }) {
-  const motionVal = useMotionValue(0);
   const [display, setDisplay] = useState('0');
 
   useEffect(() => {
-    const controls = animate(motionVal, target, { duration: 1.5, ease: 'easeOut' });
-    const unsub = motionVal.on('change', (v) => setDisplay(v.toFixed(decimals)));
-    return () => { controls.stop(); unsub(); };
-  }, [target, decimals, motionVal]);
+    const start = performance.now();
+    const duration = 1500;
+    let raf: number;
+    function tick(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay((eased * target).toFixed(decimals));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, decimals]);
 
   return <span>{display}</span>;
 }
@@ -120,6 +127,13 @@ function ScoreCircle({ score }: { score: number }) {
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
   const strokeColor = getScoreColor(score);
+  const circleRef = useRef<SVGCircleElement>(null);
+
+  useEffect(() => {
+    if (circleRef.current) {
+      circleRef.current.style.strokeDashoffset = String(circumference * (1 - score / 100));
+    }
+  }, [score, circumference]);
 
   return (
     <div className="relative flex flex-col items-center justify-center">
@@ -139,7 +153,8 @@ function ScoreCircle({ score }: { score: number }) {
           strokeWidth="8"
         />
         {/* Animated progress arc */}
-        <motion.circle
+        <circle
+          ref={circleRef}
           cx="80"
           cy="80"
           r={radius}
@@ -148,10 +163,11 @@ function ScoreCircle({ score }: { score: number }) {
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: circumference * (1 - score / 100) }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
-          style={{ filter: `drop-shadow(0 0 6px ${strokeColor})` }}
+          strokeDashoffset={circumference}
+          style={{
+            transition: 'stroke-dashoffset 1.5s cubic-bezier(0,0,0.2,1)',
+            filter: `drop-shadow(0 0 6px ${strokeColor})`,
+          }}
         />
       </svg>
       {/* Center text */}
@@ -240,48 +256,17 @@ function ChainNode({ node, index, score, activeShipments, avgTemp, onClick }: Ch
 function FlowConnector({ index }: { index: number }) {
   return (
     <div className="flex-1 flex items-center relative min-w-[40px]">
-      <svg
-        className="w-full h-6"
-        viewBox="0 0 100 24"
-        preserveAspectRatio="none"
-      >
+      <svg className="w-full h-6" viewBox="0 0 100 24" preserveAspectRatio="none">
         {/* Static track */}
-        <line
-          x1="0" y1="12" x2="100" y2="12"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="2"
-        />
-        {/* Animated flow line */}
-        <motion.line
-          x1="0" y1="12" x2="100" y2="12"
-          stroke="#F59E0B"
-          strokeWidth="2"
-          strokeDasharray="12 8"
-          initial={{ strokeDashoffset: 40 }}
-          animate={{ strokeDashoffset: 0 }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'linear',
-            delay: index * 0.3,
-          }}
-          style={{ opacity: 0.6 }}
-        />
+        <line x1="0" y1="12" x2="100" y2="12" stroke="rgba(255,255,255,0.06)" strokeWidth="2" />
+        {/* Animated flow line — SMIL keeps animation in SVG user units, SSR-safe */}
+        <line x1="0" y1="12" x2="100" y2="12" stroke="#F59E0B" strokeWidth="2" strokeDasharray="12 8" strokeDashoffset="40" style={{ opacity: 0.6 }}>
+          <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.5s" repeatCount="indefinite" begin={`${index * 0.3}s`} />
+        </line>
         {/* Traveling dot */}
-        <motion.circle
-          r="4"
-          cy="12"
-          fill="#F59E0B"
-          initial={{ cx: 0 }}
-          animate={{ cx: 100 }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'linear',
-            delay: index * 0.5,
-          }}
-          style={{ filter: 'drop-shadow(0 0 4px #F59E0B)' }}
-        />
+        <circle r="4" cy="12" cx="0" fill="#F59E0B" style={{ filter: 'drop-shadow(0 0 4px #F59E0B)' }}>
+          <animate attributeName="cx" from="0" to="100" dur="2s" repeatCount="indefinite" begin={`${index * 0.5}s`} />
+        </circle>
       </svg>
     </div>
   );
