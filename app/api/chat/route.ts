@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { messages, context } = await req.json();
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: `You are ChainBot, an expert AI assistant embedded in FoodChain CRM — a UK retail supply chain food waste reduction platform. You have deep knowledge of:
 

@@ -1,7 +1,39 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Component, type ReactNode } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
+
+// ─── Error Boundary ────────────────────────────────────────────────────────────
+
+interface ErrorBoundaryState { hasError: boolean }
+
+class PageErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-amber-400 text-4xl mb-4">⚠</div>
+            <h2 className="text-white text-lg font-semibold mb-2">Cold Chain Dashboard Unavailable</h2>
+            <p className="text-gray-400 text-sm mb-4">An error occurred loading this page.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-amber-500 text-black text-sm font-semibold rounded-lg hover:bg-amber-400 transition-colors"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import {
   LineChart,
   Line,
@@ -56,6 +88,7 @@ function getStatusBadge(status: Shipment['status']): string {
     case 'Delayed':    return 'bg-amber-500/15 text-amber-300 border border-amber-500/25';
     case 'Delivered':  return 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25';
     case 'At Risk':    return 'bg-red-500/15 text-red-300 border border-red-500/25';
+    default:           return 'bg-gray-500/15 text-gray-300 border border-gray-500/25';
   }
 }
 
@@ -685,7 +718,7 @@ function ShipmentRow({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function ColdChainPage() {
+function ColdChainContent() {
   const { shipments, coldChainScore } = useData();
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [nodePopover, setNodePopover] = useState<NodePopover | null>(null);
@@ -903,5 +936,13 @@ export default function ColdChainPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ColdChainPage() {
+  return (
+    <PageErrorBoundary>
+      <ColdChainContent />
+    </PageErrorBoundary>
   );
 }

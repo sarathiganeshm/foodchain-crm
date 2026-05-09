@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, stagger } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, X, ChevronDown, Send, RotateCcw } from 'lucide-react';
 import { useData } from '@/components/providers/DataProvider';
 
