@@ -157,18 +157,21 @@ const DataContext = createContext<DataContextType | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [sensors, setSensors] = useState<Sensor[]>(() =>
-    SENSOR_CONFIG.map(cfg => ({
-      ...cfg,
-      currentValue: initSensorValue(cfg),
-      status: 'NORMAL' as SensorStatus,
-      history: Array.from({ length: 20 }, () => initSensorValue(cfg)),
-    }))
+    SENSOR_CONFIG.map(cfg => {
+      const mid = parseFloat(((cfg.safeMin + cfg.safeMax) / 2).toFixed(1));
+      return {
+        ...cfg,
+        currentValue: mid,
+        status: 'NORMAL' as SensorStatus,
+        history: Array.from({ length: 20 }, () => mid),
+      };
+    })
   );
 
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>(INITIAL_SHIPMENTS);
   const [forecastCategory, setForecastCategory] = useState('Fresh Produce');
-  const [forecast, setForecast] = useState<ForecastPoint[]>(() => generateForecast(30, 'Fresh Produce'));
+  const [forecast, setForecast] = useState<ForecastPoint[]>([]);
   const [wasteThisWeek] = useState(847);
   const [mapeScore] = useState(94.2);
   const [redistributedToday] = useState(2340);
@@ -245,9 +248,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
 
   const lastForecastValues = forecast.slice(0, 7).map(f => f.forecast);
-  const mean = lastForecastValues.reduce((a, b) => a + b, 0) / lastForecastValues.length;
-  const variance = lastForecastValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / lastForecastValues.length;
-  const cv = Math.sqrt(variance) / mean;
+  const mean = lastForecastValues.length > 0 ? lastForecastValues.reduce((a, b) => a + b, 0) / lastForecastValues.length : 0;
+  const variance = lastForecastValues.length > 0 ? lastForecastValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / lastForecastValues.length : 0;
+  const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
   const bullwhipScore = Math.min(100, Math.round(cv * 400));
   const bullwhipRisk: 'Low' | 'Medium' | 'High' = bullwhipScore < 30 ? 'Low' : bullwhipScore < 60 ? 'Medium' : 'High';
 
