@@ -42,7 +42,6 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
-import { SplineScene } from '@/components/ui/splite';
 import { useData, Shipment } from '@/components/providers/DataProvider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -760,12 +759,8 @@ function ColdChainContent() {
     <div className="min-h-screen bg-[#030712] -m-6 pb-8">
       {/* ── Hero Section ─────────────────────────────────────────────── */}
       <div className="relative w-full" style={{ height: 280 }}>
-        {/* Spline background */}
-        <SplineScene
-          scene="https://prod.spline.design/uHjFi7hHNMTRBFp2/scene.splinecode"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          targetOpacity={0.2}
-        />
+        {/* Ambient glow background */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(245,158,11,0.08) 0%, rgba(16,185,129,0.04) 40%, transparent 70%)' }} />
 
         {/* Dark overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#030712]/30 via-transparent to-[#030712]" />
@@ -925,6 +920,13 @@ function ColdChainContent() {
 }
 
 export default function ColdChainPage() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-[#030712]" />;
+  }
+
   return (
     <PageErrorBoundary>
       <ColdChainContent />
